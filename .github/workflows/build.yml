@@ -82,3 +82,5 @@ jobs:
         path: |
           build/release/mpsvr
           build/debug/mpsvrd
+
+          //test

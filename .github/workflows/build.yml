@@ -2,85 +2,52 @@ name: Build SA-MP Server
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
 
 jobs:
   build-linux:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository (with submodules)
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
+      - name: Checkout repository (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-    - name: Install build tools
-      run: |
-        sudo apt update
-        sudo apt install -y gcc g++ make
+      - name: Install build tools
+        run: |
+          sudo apt update
+          sudo apt install -y gcc g++ make
 
-    - name: Build Release (mpsvr)
-      run: |
-        mkdir -p build/release
-        cd build/release
+      - name: Prepare build directories
+        run: |
+          mkdir -p build/release
+          mkdir -p build/debug
 
-        gcc -O2 -c -fpack-struct=1 -w \
-          -I../../SDK/amx \
-          -DLINUX -DSAMPSRV -DAMX_NODYNALOAD \
-          ../../SDK/amx/*.c
+      - name: Build Release (mpsvr)
+        working-directory: ${{ github.workspace }}
+        run: |
+          # compile using Makefile
+          make all
 
-        g++ -O2 -c -fpack-struct=1 -w \
-          -I../../SDK/amx \
-          -DLINUX -DSAMPSRV -DAMX_NODYNALOAD \
-          ../../*.cpp
+          # move release binary
+          mv mpsvr build/release/
 
-        g++ -O2 -c -fpack-struct=1 -w \
-          -I../../SDK/amx \
-          -DLINUX -DSAMPSRV -DAMX_NODYNALOAD \
-          ../../SDK/raknet/*.cpp
+      - name: Build Debug (mpsvrd)
+        working-directory: ${{ github.workspace }}
+        run: |
+          # compile using Makefile debug flags
+          make debug
 
-        g++ -O2 -fpack-struct=1 -w \
-          -I../../SDK/amx \
-          -ldl -lpthread -lm \
-          -o mpsvr \
-          -DLINUX -DSAMPSRV -DAMX_NODYNALOAD \
-          *.o
+          # move debug binary
+          mv mpsvrd build/debug/
 
-    - name: Build Debug (mpsvrd)
-      run: |
-        mkdir -p build/debug
-        cd build/debug
-
-        gcc -c -g -fpack-struct=1 -w \
-          -I../../SDK/amx \
-          -DLINUX -DSAMPSRV -DAMX_NODYNALOAD \
-          ../../SDK/amx/*.c
-
-        g++ -c -g -fpack-struct=1 -w \
-          -I../../SDK/amx \
-          -DLINUX -DSAMPSRV -DAMX_NODYNALOAD \
-          ../../*.cpp
-
-        g++ -c -g -fpack-struct=1 -w \
-          -I../../SDK/amx \
-          -DLINUX -DSAMPSRV -DAMX_NODYNALOAD \
-          ../../SDK/raknet/*.cpp
-
-        g++ -g -fpack-struct=1 -w \
-          -I../../SDK/amx \
-          -ldl -lpthread -lm \
-          -o mpsvrd \
-          -DLINUX -DSAMPSRV -DAMX_NODYNALOAD \
-          *.o
-
-    - name: Upload binaries
-      uses: actions/upload-artifact@v4
-      with:
-        name: samp-server-linux
-        path: |
-          build/release/mpsvr
-          build/debug/mpsvrd
-
-          //test
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: samp-server-linux
+          path: |
+            build/release/mpsvr
+            build/debug/mpsvrd
